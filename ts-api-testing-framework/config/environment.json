@@ -1,0 +1,9 @@
+{
+  "dev": {
+    "baseURL": "https://sra-api-pte-dpop-ams-stage.apps.ocp-dc7-03.ikeadt.com",
+    "authURL": "https://sra-api-pte-dpop-ams-stage.apps.ocp-dc7-03.ikeadt.com/api/auth",
+    "email": "irfaan.a@inter.ikea.com",
+    "timeout": 10000,
+    "retries": 3
+  }
+}

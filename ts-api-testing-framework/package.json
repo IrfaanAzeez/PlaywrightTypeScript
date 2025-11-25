@@ -1,0 +1,37 @@
+{
+  "name": "ts-api-testing-framework",
+  "version": "1.0.0",
+  "description": "BDD API Testing Framework using Cucumber, Playwright, and TypeScript",
+  "main": "index.js",
+  "scripts": {
+    "test": "cucumber-js --require-module ts-node/register",
+    "test:report": "cucumber-js --require-module ts-node/register && npm run report:open",
+    "report:open": "playwright show-report",
+    "build": "tsc",
+    "lint": "eslint src/**/*.ts",
+    "clean": "rm -rf dist playwright-report"
+  },
+  "keywords": [
+    "cucumber",
+    "bdd",
+    "api-testing",
+    "playwright",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@cucumber/cucumber": "^10.0.1",
+    "axios": "^1.6.5",
+    "dotenv": "^16.3.1",
+    "playwright": "^1.40.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "@typescript-eslint/eslint-plugin": "^6.17.0",
+    "@typescript-eslint/parser": "^6.17.0",
+    "eslint": "^8.56.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
