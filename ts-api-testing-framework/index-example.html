@@ -1,0 +1,310 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Report - Fetch SRA Copy Parameters with valid token</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+      border-bottom: 5px solid #28a745;
+    }
+    
+    .header h1 {
+      font-size: 2em;
+      margin-bottom: 10px;
+    }
+    
+    .header .scenario-name {
+      font-size: 1.1em;
+      opacity: 0.9;
+      margin-bottom: 15px;
+    }
+    
+    .test-status {
+      font-size: 1.8em;
+      font-weight: bold;
+      color: #28a745;
+      margin-top: 15px;
+    }
+    
+    .test-status .icon {
+      margin-right: 10px;
+    }
+    
+    .content {
+      padding: 30px;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    
+    .stat-card {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+      border-left: 4px solid #667eea;
+    }
+    
+    .stat-card.passed {
+      border-left-color: #28a745;
+    }
+    
+    .stat-card.failed {
+      border-left-color: #dc3545;
+    }
+    
+    .stat-card.total {
+      border-left-color: #667eea;
+    }
+    
+    .stat-card.skipped {
+      border-left-color: #ffc107;
+    }
+    
+    .stat-card .label {
+      color: #666;
+      font-size: 0.9em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    
+    .stat-card .value {
+      font-size: 2.5em;
+      font-weight: bold;
+      color: #333;
+    }
+    
+    .info-section {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+    }
+    
+    .info-item {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .info-item label {
+      font-size: 0.85em;
+      color: #667eea;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    
+    .info-item .value {
+      color: #333;
+      word-break: break-all;
+    }
+    
+    .steps-section {
+      margin-top: 30px;
+    }
+    
+    .steps-section h2 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 1.3em;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 10px;
+    }
+    
+    .steps-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+    
+    .steps-table thead {
+      background: #f8f9fa;
+      border-bottom: 2px solid #667eea;
+    }
+    
+    .steps-table th {
+      padding: 15px;
+      text-align: left;
+      font-weight: 600;
+      color: #333;
+    }
+    
+    .steps-table td {
+      padding: 12px 15px;
+      border-bottom: 1px solid #e9ecef;
+    }
+    
+    .steps-table tr:hover {
+      background: #f8f9fa;
+    }
+    
+    .status-icon {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 24px;
+      color: white;
+      font-weight: bold;
+      font-size: 0.9em;
+    }
+    
+    .status-icon.passed {
+      background: #28a745;
+    }
+    
+    .status-icon.failed {
+      background: #dc3545;
+    }
+    
+    .status-icon.skipped {
+      background: #ffc107;
+      color: #333;
+    }
+    
+    .step-passed {
+      background: #f0fff4;
+    }
+    
+    .step-failed {
+      background: #fff5f5;
+    }
+    
+    .step-skipped {
+      background: #fffbf0;
+    }
+    
+    .error-row {
+      background: #fff5f5 !important;
+    }
+    
+    .error-details {
+      color: #dc3545;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85em;
+      padding: 10px;
+      border-left: 3px solid #dc3545;
+      margin: 5px 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    
+    .footer {
+      background: #f8f9fa;
+      padding: 20px;
+      text-align: center;
+      color: #999;
+      font-size: 0.9em;
+      border-top: 1px solid #e9ecef;
+    }
+    
+    .no-steps {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📊 Test Report</h1>
+      <div class="scenario-name">Fetch SRA Copy Parameters with valid token</div>
+      <div class="test-status">
+        <span class="icon">✓</span>
+        PASSED
+      </div>
+    </div>
+    
+    <div class="content">
+      <div class="stats-grid">
+        <div class="stat-card total">
+          <div class="label">Total Steps</div>
+          <div class="value">0</div>
+        </div>
+        <div class="stat-card passed">
+          <div class="label">Passed</div>
+          <div class="value" style="color: #28a745;">0</div>
+        </div>
+        <div class="stat-card failed">
+          <div class="label">Failed</div>
+          <div class="value" style="color: #dc3545;">0</div>
+        </div>
+        <div class="stat-card skipped">
+          <div class="label">Skipped</div>
+          <div class="value" style="color: #ffc107;">0</div>
+        </div>
+      </div>
+      
+      <div class="info-section">
+        <div class="info-item">
+          <label>Start Time</label>
+          <div class="value">25/11/2025, 20:56:06</div>
+        </div>
+        <div class="info-item">
+          <label>Duration</label>
+          <div class="value">159ms</div>
+        </div>
+        <div class="info-item">
+          <label>Environment</label>
+          <div class="value">dev</div>
+        </div>
+        <div class="info-item">
+          <label>Test Run ID</label>
+          <div class="value">Fetch_SRA_Copy_Parameters_with_valid_token_2025-11-25_20-56-06</div>
+        </div>
+      </div>
+      
+      
+      <div class="steps-section">
+        <h2>📋 Test Steps</h2>
+        <div class="no-steps">No steps data available</div>
+      </div>
+      
+    </div>
+    
+    <div class="footer">
+      <p>Generated on 25/11/2025, 20:56:06</p>
+      <p>© 2025 API Testing Framework</p>
+    </div>
+  </div>
+</body>
+</html>
+    

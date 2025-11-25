@@ -4,12 +4,13 @@
   "description": "BDD API Testing Framework using Cucumber, Playwright, and TypeScript",
   "main": "index.js",
   "scripts": {
-    "test": "cucumber-js --require-module ts-node/register",
-    "test:report": "cucumber-js --require-module ts-node/register && npm run report:open",
-    "report:open": "playwright show-report",
+    "test": "node scripts/run-tests.js",
+    "test:watch": "cucumber-js --require-module ts-node/register --watch",
+    "test:report": "npm run test && npm run report:open",
+    "report:open": "start reports/index.html",
     "build": "tsc",
     "lint": "eslint src/**/*.ts",
-    "clean": "rm -rf dist playwright-report"
+    "clean": "rm -rf dist reports playwright-report"
   },
   "keywords": [
     "cucumber",

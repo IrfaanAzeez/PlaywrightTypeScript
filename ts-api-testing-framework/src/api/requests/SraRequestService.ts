@@ -3,15 +3,6 @@ import { AuthHandler } from '../../auth/AuthHandler';
 import { loadConfig } from '../../utils/config';
 import { logger } from '../../utils/logger';
 
-/**
- * SRA Request Service
- * Handles authentication and API calls to SRA endpoints
- * 
- * Architecture:
- * 1. Use authURL + email from config to generate JWT token
- * 2. Use baseURL + endpointPath to make authenticated requests with Bearer token
- * 3. Reusable for different endpoints by overriding endpointPath
- */
 export class SraRequestService {
   private apiClient: APIClient;
   private authHandler: AuthHandler;
@@ -29,7 +20,7 @@ export class SraRequestService {
     this.authHandler = authHandler;
     
     const config = loadConfig('dev');
-    this.baseURL = config.baseURL || 'https://localhost:3000';
+    this.baseURL = config.baseURL || '';
     this.authURL = config.authURL || '';
     this.email = config.email || '';
 
