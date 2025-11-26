@@ -1,92 +1,41 @@
-import { Given, When, Then } from '@cucumber/cucumber';
+import { Given, Then } from '@cucumber/cucumber';
 import { ApiWorld } from '../support/world';
-import { SraResponse } from '../api/responses/SraResponse';
 import { logger } from '../utils/logger';
 import * as assert from 'assert';
 
-Given('I have the SRA email {string}', async function (this: ApiWorld, email: string) {
-  this.storeTestData('sraEmail', email);
-  logger.info(`SRA Email set: ${email}`);
+Given('Generate JWT token', async function (this: ApiWorld) {
+  // Generate token using client credentials
+  const token = await this.sraRequestService.authenticateSra();
+  this.storeTestData('jwtToken', token);
+  logger.info(`JWT token generated.`);
 });
 
-// ==================== WHEN Steps ====================
-
-When('I send an authentication request to SRA API', async function (this: ApiWorld) {
-  try {
-    const sraEmail = this.getTestData('sraEmail');
-    assert.ok(sraEmail, 'SRA email should be set');
-
-    // Use the SRA service already initialized in world.ts
-    const response = await this.sraRequestService.authenticateSra(sraEmail);
-
-    // Store token and response
-    this.storeTestData('sraToken', response);
-    this.storeTestData('sraAuthResponse', {
-      status: 200,
-      data: { token: response }
-    });
-
-    logger.info(`SRA Authentication successful. Token received.`);
-  } catch (error) {
-    this.handleError(error);
-    throw error;
-  }
+Then('Use the token to get the Education details using education end point', async function (this: ApiWorld) {
+  const jwtToken = this.getTestData('jwtToken');
+  assert.ok(jwtToken, 'JWT token should be available');
+  const response = await this.sraRequestService.getSraSprCopyParam(jwtToken);
+  this.storeTestData('educationResponse', response);
+  logger.info(`Education details fetched. Status: ${response.status}`);
 });
 
-When('I authenticate with SRA API', async function (this: ApiWorld) {
-  try {
-    const sraEmail = this.getTestData('sraEmail');
-    assert.ok(sraEmail, 'SRA email should be set');
-
-    // Use the SRA service already initialized in world.ts
-    const token = await this.sraRequestService.authenticateSra(sraEmail);
-
-    this.storeTestData('sraToken', token);
-    logger.info(`SRA Authenticated successfully`);
-  } catch (error) {
-    this.handleError(error);
-    throw error;
-  }
+Then('Verify the status code should be 200', async function (this: ApiWorld) {
+  const response = this.getTestData('educationResponse');
+  assert.ok(response, 'Education response should exist');
+  assert.strictEqual(response.status, 200, `Expected status 200, but got ${response.status}`);
+  logger.info(`✓ Education response status is 200`);
 });
 
-When('I send a GET request to fetch SRA Copy Parameters', async function (this: ApiWorld) {
-  try {
-    const sraToken = this.getTestData('sraToken');
-    assert.ok(sraToken, 'SRA Token should be available');
-
-    // Use the SRA service already initialized in world.ts
-    const response = await this.sraRequestService.getSraSprCopyParam(sraToken);
-    const sraResponse = new SraResponse(response);
-
-    this.storeTestData('sraResponse', sraResponse);
-    logger.info(`SRA Copy Parameters fetched. Status: ${response.status}`);
-  } catch (error) {
-    this.handleError(error);
-    throw error;
-  }
+Then('Print the response payload we are getting in Json file', async function (this: ApiWorld) {
+  const response = this.getTestData('educationResponse');
+  const jsonString = JSON.stringify(response.data, null, 2);
+  logger.info('Full Education response payload:');
+  logger.info(jsonString);
 });
 
-Then('the SRA response status code should be {int}', async function (this: ApiWorld, statusCode: number) {
-  const sraResponse = this.getTestData('sraResponse') as SraResponse;
-  assert.ok(sraResponse, 'SRA response should exist');
-
-  assert.strictEqual(
-    sraResponse.status,
-    statusCode,
-    `Expected status ${statusCode}, but got ${sraResponse.status}`
-  );
-  logger.info(`✓ SRA response status is ${statusCode}`);
-});
-
-Then('the SRA response should contain data', async function (this: ApiWorld) {
-  const sraResponse = this.getTestData('sraResponse') as SraResponse;
-  assert.ok(sraResponse, 'SRA response should exist');
-  assert.ok(sraResponse.hasData(), 'SRA response should contain data');
-  logger.info(`✓ SRA response contains data`);
-});
-
-Then('the SRA data should be valid', async function (this: ApiWorld) {
-  const sraResponse = this.getTestData('sraResponse') as SraResponse;
-  assert.ok(sraResponse.isSuccess(), 'SRA response should be successful');
-  logger.info(`✓ SRA data is valid`);
+Then('Verify the Order id should be equal to 8345413', async function (this: ApiWorld) {
+  const response = this.getTestData('educationResponse');
+  assert.ok(response && response.data, 'Education response data should exist');
+  const orderId = response.data.orderNumber;
+  assert.strictEqual(orderId, 8345413, `Expected order id 8345413, but got ${orderId}`);
+  logger.info('✓ Order id is 8345413');
 });

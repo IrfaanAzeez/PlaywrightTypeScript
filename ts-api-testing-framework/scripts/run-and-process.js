@@ -1,13 +1,35 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
+/*
+ * Consolidated Test Runner + Report Processor
+ * - Runs Cucumber tests (via npx cucumber-js)
+ * - Always runs the built-in post-processing (copies reports to C:\\Reports and generates index.html)
+ */
+
+const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 
 const projectRoot = path.join(__dirname, '..');
-const currentReportDir = path.join(projectRoot, 'reports', 'current');
 
-// Match ReportGenerator: on Windows use C:\\Reports, otherwise /tmp/Reports
-const reportsRoot = process.platform === 'win32' ? 'C:\\Reports' : path.join('/', 'tmp', 'Reports');
+function runCommand(cmd, args) {
+  return new Promise((resolve) => {
+    const proc = spawn(cmd, args, {
+      cwd: projectRoot,
+      stdio: 'inherit',
+      shell: true,
+    });
+
+    proc.on('close', (code) => {
+      resolve(code);
+    });
+
+    proc.on('error', (err) => {
+      console.error(`Error running ${cmd}:`, err);
+      resolve(1);
+    });
+  });
+}
 
 async function waitForJsonFile(filePath, opts = {}) {
   const { timeoutMs = 15000, intervalMs = 300, minSize = 20 } = opts;
@@ -31,6 +53,8 @@ async function waitForJsonFile(filePath, opts = {}) {
 async function processReports() {
   console.log('[ReportProcessor] Starting report processing...');
 
+  const currentReportDir = path.join(projectRoot, 'reports', 'current');
+
   if (!fs.existsSync(currentReportDir)) {
     console.log('[ReportProcessor] No current reports found. Skipping.');
     return;
@@ -44,7 +68,8 @@ async function processReports() {
     return;
   }
 
-  // Ensure reports root exists (may be C:\Reports)
+  const reportsRoot = process.platform === 'win32' ? 'C:\\Reports' : path.join('/', 'tmp', 'Reports');
+
   if (!fs.existsSync(reportsRoot)) {
     try {
       fs.mkdirSync(reportsRoot, { recursive: true });
@@ -55,7 +80,6 @@ async function processReports() {
     }
   }
 
-  // Find latest test-run directory under reportsRoot (exclude 'current')
   const testRunDirs = fs
     .readdirSync(reportsRoot)
     .filter((file) => {
@@ -71,7 +95,6 @@ async function processReports() {
 
   let latestTestRunDir = testRunDirs.length > 0 ? testRunDirs[0].path : null;
   if (!latestTestRunDir) {
-    // Create a fallback folder if none exist
     const folderName = `manual_run_${new Date().toISOString().replace(/[:.]/g, '-')}`;
     latestTestRunDir = path.join(reportsRoot, folderName);
     try {
@@ -85,7 +108,6 @@ async function processReports() {
     console.log('[ReportProcessor] Latest test run directory:', latestTestRunDir);
   }
 
-  // Copy HTML (if present)
   if (fs.existsSync(htmlReportPath)) {
     const destHtmlPath = path.join(latestTestRunDir, 'report.html');
     try {
@@ -96,7 +118,6 @@ async function processReports() {
     }
   }
 
-  // Copy JSON (wait until non-empty)
   if (fs.existsSync(jsonReportPath)) {
     const ready = await waitForJsonFile(jsonReportPath, { timeoutMs: 20000, intervalMs: 300, minSize: 20 });
     const destJsonPath = path.join(latestTestRunDir, 'report.json');
@@ -110,7 +131,6 @@ async function processReports() {
     }
   }
 
-  // Generate simple index.html inside the test-run folder using metadata + report.json
   try {
     const metadataPath = path.join(latestTestRunDir, 'metadata.json');
     let metadata = {};
@@ -141,7 +161,13 @@ async function processReports() {
       else stats.skipped++;
     });
 
-    const idx = `<!doctype html><html><head><meta charset="utf-8"><title>${metadata.scenarioName || 'Test Run'}</title></head><body><h1>${metadata.scenarioName || 'Test Run'}</h1><p>Status: ${metadata.status || 'UNKNOWN'}</p><ul><li>Total Steps: ${stats.total}</li><li>Passed: ${stats.passed}</li><li>Failed: ${stats.failed}</li><li>Skipped: ${stats.skipped}</li></ul><h2>Steps</h2><ol>${steps.map(st=>`<li>${(st.keyword||'') + (st.name||'')} - ${st.result?.status || 'unknown'}${st.result?.error_message?`<pre>${st.result.error_message}</pre>`:''}</li>`).join('')}</ol></body></html>`;
+    let logContent = '';
+    const logPath = path.join(projectRoot, 'test.log');
+    if (fs.existsSync(logPath)) {
+      logContent = fs.readFileSync(logPath, 'utf-8');
+    }
+
+    const idx = `<!doctype html><html><head><meta charset="utf-8"><title>${metadata.scenarioName || 'Test Run'}</title></head><body><h1>${metadata.scenarioName || 'Test Run'}</h1><p>Status: ${metadata.status || 'UNKNOWN'}</p><ul><li>Total Steps: ${stats.total}</li><li>Passed: ${stats.passed}</li><li>Failed: ${stats.failed}</li><li>Skipped: ${stats.skipped}</li></ul><h2>Steps</h2><ol>${steps.map(st=>`<li>${(st.keyword||'') + (st.name||'')} - ${st.result?.status || 'unknown'}${st.result?.error_message?`<pre>${st.result.error_message}</pre>`:''}</li>`).join('')}</ol><h2>Logger Output</h2><pre style='background:#f4f4f4;padding:1em;border:1px solid #ccc;max-height:400px;overflow:auto;'>${logContent}</pre></body></html>`;
     const indexPath = path.join(latestTestRunDir, 'index.html');
     fs.writeFileSync(indexPath, idx, 'utf-8');
     console.log('[ReportProcessor] index.html generated:', indexPath);
@@ -150,7 +176,7 @@ async function processReports() {
   }
 
   try {
-    fs.rmSync(currentReportDir, { recursive: true, force: true });
+    fs.rmSync(path.join(projectRoot, 'reports', 'current'), { recursive: true, force: true });
     console.log('[ReportProcessor] Cleaned up temporary report directory.');
   } catch (e) {
     console.warn('[ReportProcessor] Failed to clean up temporary report directory:', e.message);
@@ -159,7 +185,18 @@ async function processReports() {
   console.log('[ReportProcessor] Report processing completed successfully!');
 }
 
-processReports().catch((err) => {
-  console.error('[ReportProcessor] Fatal error:', err);
+async function main() {
+  console.log('[Runner] Starting Cucumber tests...');
+  const cucumberExitCode = await runCommand('npx', ['cucumber-js', '--require-module', 'ts-node/register']);
+  console.log(`[Runner] Cucumber exited with code: ${cucumberExitCode}`);
+
+  console.log('[Runner] Processing reports...');
+  await processReports();
+
+  process.exit(cucumberExitCode);
+}
+
+main().catch((err) => {
+  console.error('[Runner] Fatal error:', err);
   process.exit(1);
 });

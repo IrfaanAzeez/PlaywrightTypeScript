@@ -1,10 +1,9 @@
 Feature: User API Testing
 
   @api @sra @regression
-  Scenario: Fetch SRA Copy Parameters with valid token
-    Given I have the SRA email "irfaan.a@inter.ikea.com"
-    When I authenticate with SRA API
-    And I send a GET request to fetch SRA Copy Parameters
-    Then the SRA response status code should be 200
-    And the SRA response should contain data
-    And the SRA data should be valid
+  Scenario: Fetch Education Details with JWT token
+    Given Generate JWT token
+    Then Use the token to get the Education details using education end point
+    And Verify the status code should be 200
+    And Print the response payload we are getting in Json file
+    And Verify the Order id should be equal to 8345413

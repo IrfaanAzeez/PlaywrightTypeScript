@@ -11,9 +11,8 @@ export class SraRequestService {
   private email: string;
   private sraToken: string | null = null;
 
-  // Endpoint path - can be overridden in subclasses or passed as parameter
-  // For SRA Copy Parameters
-  protected endpointPath: string = '/api/srasprcopyparam/getSraSprCopyParam';
+  // Endpoint path for education detail
+  protected endpointPath: string = '/clients/3115/orders/8345413/education/detail';
 
   constructor(apiClient: APIClient, authHandler: AuthHandler) {
     this.apiClient = apiClient;
@@ -54,38 +53,31 @@ export class SraRequestService {
    * @returns Promise<string> - JWT token
    */
   public async authenticateSra(email?: string): Promise<string> {
-    try {
-      const sraEmail = email || this.email;
+    // Use client credentials for token
+    const config = loadConfig('dev');
+    const authURL = config.authURL;
+    const clientId = config.clientId;
+    const clientSecret = config.clientSecret;
+    const resourceUrl = config.resourceUrl;
 
-      if (!sraEmail) {
-        throw new Error('Email not provided and not configured in environment');
-      }
-
-      if (!this.authURL) {
-        throw new Error('Auth URL not configured');
-      }
-
-      logger.info(`Authenticating with SRA API for email: ${sraEmail}`);
-
-      const response = await this.apiClient.post(
-        this.authURL,
-        { email: sraEmail },
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-
-      if (response.status === 200 || response.status === 201) {
-        // Handle different response formats
-        const token = response.data.token || response.data.access_token || response.data;
-        this.sraToken = token;
-        logger.info('SRA Authentication successful - JWT Token received');
-        return token;
-      }
-
-      throw new Error(`Authentication failed with status ${response.status}`);
-    } catch (error: any) {
-      logger.error(`SRA Authentication error: ${JSON.stringify(error)}`);
-      throw error;
+    if (!authURL || !clientId || !clientSecret || !resourceUrl) {
+      throw new Error('Missing auth config for client credentials');
     }
+
+    logger.info('Authenticating with client credentials');
+    const response = await this.apiClient.post(
+      authURL,
+      `grant_type=client_credentials&client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}&scope=${encodeURIComponent(resourceUrl)}`,
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    );
+
+    if (response.status === 200 || response.status === 201) {
+      const token = response.data.access_token;
+      this.sraToken = token;
+      logger.info('Client credentials authentication successful - Token received');
+      return token;
+    }
+    throw new Error(`Authentication failed with status ${response.status}`);
   }
 
   /**
@@ -97,23 +89,16 @@ export class SraRequestService {
    */
   public async getSraSprCopyParam(token?: string): Promise<any> {
     const authToken = token || this.sraToken;
-
     if (!authToken) {
-      throw new Error('SRA token not available. Please authenticate first.');
+      throw new Error('Token not available. Please authenticate first.');
     }
-
-    if (!this.endpointPath) {
-      throw new Error('Endpoint path not configured');
-    }
-
     const fullUrl = `${this.baseURL}${this.endpointPath}`;
     logger.info(`Making GET request to: ${fullUrl}`);
-
     const headers = {
       'Authorization': `Bearer ${authToken}`,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'api-version': '1'
     };
-
     try {
       const response = await this.apiClient.get(fullUrl, { headers });
       logger.info(`API request successful. Status: ${response.status}`);

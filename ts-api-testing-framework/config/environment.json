@@ -1,9 +1,9 @@
 {
   "dev": {
-    "baseURL": "https://sra-api-pte-dpop-ams-stage.apps.ocp-dc7-03.ikeadt.com",
-    "authURL": "https://sra-api-pte-dpop-ams-stage.apps.ocp-dc7-03.ikeadt.com/api/auth",
-    "email": "irfaan.a@inter.ikea.com",
-    "timeout": 10000,
-    "retries": 3
+    "baseURL": "https://stage-api.cisive.com/precheck-order-management",
+    "authURL": "https://login.microsoftonline.com/b02c222b-aa05-4640-89d4-fdea4e328e62/oauth2/v2.0/token",
+    "client_id": "360dd19f-af13-46d3-afcd-537d56f94b2f",
+    "client_secret": "${AZURE_CLIENT_SECRET}",
+    "resource_url": "api://91a2b895-bb4e-4173-b66a-71f00e59bba5/.default"
   }
 }

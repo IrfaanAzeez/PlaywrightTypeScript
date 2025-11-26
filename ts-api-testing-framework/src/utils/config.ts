@@ -14,6 +14,7 @@ interface EnvironmentConfig {
   timeout: number;
   retries: number;
   email?: string;
+  resourceUrl?: string;
 }
 
 let configCache: Map<string, EnvironmentConfig> = new Map();
@@ -42,13 +43,14 @@ export function loadConfig(environment: string = 'dev'): EnvironmentConfig {
       throw new Error(`Environment "${environment}" not found in config file`);
     }
 
-    // Merge with environment variables if available
-    const finalConfig: EnvironmentConfig = {
+    // Normalize keys to support both camelCase and snake_case
+    const finalConfig: EnvironmentConfig & { resourceUrl?: string } = {
       baseURL: process.env.BASE_URL || envConfig.baseURL,
       apiURL: process.env.API_URL || envConfig.apiURL,
       authURL: process.env.AUTH_URL || envConfig.authURL,
-      clientId: process.env.CLIENT_ID || envConfig.clientId,
-      clientSecret: process.env.CLIENT_SECRET || envConfig.clientSecret,
+      clientId: process.env.CLIENT_ID || envConfig.clientId || envConfig.client_id,
+      clientSecret: process.env.CLIENT_SECRET || envConfig.clientSecret || envConfig.client_secret,
+      resourceUrl: process.env.RESOURCE_URL || envConfig.resourceUrl || envConfig.resource_url,
       credentials: envConfig.credentials ? {
         username: process.env.TEST_USERNAME || envConfig.credentials.username,
         password: process.env.TEST_PASSWORD || envConfig.credentials.password,

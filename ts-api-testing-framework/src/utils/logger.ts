@@ -12,12 +12,20 @@ enum LogLevel {
 
 class Logger {
   private logLevel: LogLevel = LogLevel.INFO;
+  private logFilePath: string = 'test.log';
 
   constructor() {
     // Set log level from environment variable
     const level = process.env.LOG_LEVEL?.toUpperCase();
     if (level && Object.values(LogLevel).includes(level as LogLevel)) {
       this.logLevel = level as LogLevel;
+    }
+    // Clear log file at start
+    const fs = require('fs');
+    try {
+      fs.writeFileSync(this.logFilePath, '');
+    } catch (e) {
+      // Ignore file errors
     }
   }
 
@@ -29,12 +37,23 @@ class Logger {
     return `[${timestamp}] [${level}] ${message}`;
   }
 
+  private writeToFile(message: string): void {
+    const fs = require('fs');
+    try {
+      fs.appendFileSync(this.logFilePath, message + '\n');
+    } catch (e) {
+      // Ignore file errors
+    }
+  }
+
   /**
    * Log debug message
    */
   public debug(message: string): void {
     if (this.shouldLog(LogLevel.DEBUG)) {
-      console.log(this.formatMessage(LogLevel.DEBUG, message));
+      const msg = this.formatMessage(LogLevel.DEBUG, message);
+      console.log(msg);
+      this.writeToFile(msg);
     }
   }
 
@@ -43,7 +62,9 @@ class Logger {
    */
   public info(message: string): void {
     if (this.shouldLog(LogLevel.INFO)) {
-      console.log(this.formatMessage(LogLevel.INFO, message));
+      const msg = this.formatMessage(LogLevel.INFO, message);
+      console.log(msg);
+      this.writeToFile(msg);
     }
   }
 
@@ -52,7 +73,9 @@ class Logger {
    */
   public warn(message: string): void {
     if (this.shouldLog(LogLevel.WARN)) {
-      console.warn(this.formatMessage(LogLevel.WARN, message));
+      const msg = this.formatMessage(LogLevel.WARN, message);
+      console.warn(msg);
+      this.writeToFile(msg);
     }
   }
 
@@ -61,7 +84,9 @@ class Logger {
    */
   public error(message: string): void {
     if (this.shouldLog(LogLevel.ERROR)) {
-      console.error(this.formatMessage(LogLevel.ERROR, message));
+      const msg = this.formatMessage(LogLevel.ERROR, message);
+      console.error(msg);
+      this.writeToFile(msg);
     }
   }
 

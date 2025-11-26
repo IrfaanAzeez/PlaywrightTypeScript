@@ -4,7 +4,7 @@
   "description": "BDD API Testing Framework using Cucumber, Playwright, and TypeScript",
   "main": "index.js",
   "scripts": {
-    "test": "node scripts/run-tests.js",
+    "test": "node scripts/run-and-process.js",
     "test:watch": "cucumber-js --require-module ts-node/register --watch",
     "test:report": "npm run test && npm run report:open",
     "report:open": "start reports/index.html",
