@@ -1,109 +1,80 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-interface EnvironmentConfig {
+export interface EnvironmentConfig {
   baseURL?: string;
-  apiURL?: string;
   authURL?: string;
-  clientId?: string;
-  clientSecret?: string;
-  credentials?: {
-    username: string;
-    password: string;
-  };
-  timeout: number;
-  retries: number;
-  email?: string;
-  resourceUrl?: string;
+  client_id?: string;
+  client_secret?: string;
+  resource_url?: string;
+  educationEndpoint?: string;
+  [key: string]: any;   // allow additional config keys
 }
 
 let configCache: Map<string, EnvironmentConfig> = new Map();
 
 /**
- * Load configuration for specified environment
+ * Load configuration for the selected environment exactly as in environment.json
  */
 export function loadConfig(environment: string = 'dev'): EnvironmentConfig {
-  // Return from cache if already loaded
+  // Return cached config if present
   if (configCache.has(environment)) {
     return configCache.get(environment)!;
   }
 
   try {
-    // Construct path to environment.json
     const configPath = path.join(__dirname, '../../config/environment.json');
+    const fileContents = fs.readFileSync(configPath, 'utf-8');
+    const allConfigs = JSON.parse(fileContents);
 
-    // Read and parse config file
-    const configFile = fs.readFileSync(configPath, 'utf-8');
-    const allConfigs = JSON.parse(configFile);
-
-    // Get specific environment config
     const envConfig = allConfigs[environment];
-
     if (!envConfig) {
-      throw new Error(`Environment "${environment}" not found in config file`);
+      throw new Error(`Environment "${environment}" not found.`);
     }
 
-    // Normalize keys to support both camelCase and snake_case
-    const finalConfig: EnvironmentConfig & { resourceUrl?: string } = {
+    // Merge environment variables (if provided)
+    const finalConfig: EnvironmentConfig = {
+      ...envConfig,
       baseURL: process.env.BASE_URL || envConfig.baseURL,
-      apiURL: process.env.API_URL || envConfig.apiURL,
       authURL: process.env.AUTH_URL || envConfig.authURL,
-      clientId: process.env.CLIENT_ID || envConfig.clientId || envConfig.client_id,
-      clientSecret: process.env.CLIENT_SECRET || envConfig.clientSecret || envConfig.client_secret,
-      resourceUrl: process.env.RESOURCE_URL || envConfig.resourceUrl || envConfig.resource_url,
-      credentials: envConfig.credentials ? {
-        username: process.env.TEST_USERNAME || envConfig.credentials.username,
-        password: process.env.TEST_PASSWORD || envConfig.credentials.password,
-      } : undefined,
-      timeout: parseInt(process.env.API_TIMEOUT || String(envConfig.timeout), 10),
-      retries: parseInt(process.env.API_RETRIES || String(envConfig.retries), 10),
-      email: process.env.TEST_EMAIL || envConfig.email,
+      client_id: process.env.CLIENT_ID || envConfig.client_id,
+      client_secret: process.env.CLIENT_SECRET || envConfig.client_secret,
+      resource_url: process.env.RESOURCE_URL || envConfig.resource_url
     };
 
-    // Cache the config
     configCache.set(environment, finalConfig);
-
     return finalConfig;
-  } catch (error) {
-    throw new Error(`Failed to load config for environment "${environment}": ${error}`);
+
+  } catch (err) {
+    throw new Error(`Failed to load config for environment "${environment}": ${err}`);
   }
 }
 
 /**
- * Get configuration value
+ * Get a nested config value (e.g. getConfigValue('endpoints.education'))
  */
-export function getConfigValue(key: string, environment: string = 'dev'): any {
+export function getConfigValue(key: string, environment: string = 'dev') {
   const config = loadConfig(environment);
-  const keys = key.split('.');
-  let value: any = config;
-
-  for (const k of keys) {
-    value = value?.[k];
-  }
-
-  return value;
+  return key.split('.').reduce((o, k) => (o || {})[k], config);
 }
 
 /**
- * Override configuration value at runtime
+ * Override a config value at runtime
  */
-export function setConfigValue(key: string, value: any, environment: string = 'dev'): void {
+export function setConfigValue(key: string, value: any, environment: string = 'dev') {
   const config = loadConfig(environment);
   const keys = key.split('.');
 
   let obj = config;
   for (let i = 0; i < keys.length - 1; i++) {
-    const k = keys[i];
-    obj[k] = obj[k] || {};
-    obj = obj[k];
+    obj[keys[i]] = obj[keys[i]] || {};
+    obj = obj[keys[i]];
   }
 
   obj[keys[keys.length - 1]] = value;
 }
 
-/**
- * Clear config cache
- */
-export function clearConfigCache(): void {
+/** Clear config cache */
+export function clearConfigCache() {
   configCache.clear();
 }

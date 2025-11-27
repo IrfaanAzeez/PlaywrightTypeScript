@@ -2,9 +2,9 @@ import { Given, Then } from '@cucumber/cucumber';
 import { ApiWorld } from '../support/world';
 import { logger } from '../utils/logger';
 import * as assert from 'assert';
+import { loadConfig } from './../utils/config';
 
 Given('Generate JWT token', async function (this: ApiWorld) {
-  // Generate token using client credentials
   const token = await this.sraRequestService.authenticateSra();
   this.storeTestData('jwtToken', token);
   logger.info(`JWT token generated.`);
@@ -13,8 +13,13 @@ Given('Generate JWT token', async function (this: ApiWorld) {
 Then('Use the token to get the Education details using education end point', async function (this: ApiWorld) {
   const jwtToken = this.getTestData('jwtToken');
   assert.ok(jwtToken, 'JWT token should be available');
-  const response = await this.sraRequestService.getSraSprCopyParam(jwtToken);
+
+  const config = loadConfig(this.environment);
+  const endpoint = config.educationEndpoint;
+  logger.info(`  - Endpoint Path: ${endpoint}`);
+  const response = await this.sraRequestService.getSraSprCopyParam(jwtToken, endpoint);
   this.storeTestData('educationResponse', response);
+
   logger.info(`Education details fetched. Status: ${response.status}`);
 });
 

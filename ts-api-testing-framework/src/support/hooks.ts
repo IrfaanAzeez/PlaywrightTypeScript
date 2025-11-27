@@ -68,9 +68,9 @@ After(async function (this: ApiWorld, scenario: ITestCaseHookParameter) {
     // `scripts/processReports-fixed.js` will generate the per-run index.html
 
     // Cleanup: Reset auth tokens and clear test data
-    if (typeof this.cleanup === 'function') {
-      await this.cleanup();
-    }
+    // if (typeof this.cleanup === 'function') {
+    //   await this.cleanup();
+    // }
 
     if (typeof this.getScenarioInfo === 'function') {
       logger.info(`Scenario Summary:\n${this.getScenarioInfo()}`);
